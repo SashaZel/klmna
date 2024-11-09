@@ -1,3 +1,3 @@
 module klmna/main
 
-go 1.22.4
+go 1.23.3
