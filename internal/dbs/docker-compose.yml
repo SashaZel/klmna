@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:17.0
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "klmna-db"
+      POSTGRES_USER: "klmna-user"
+      POSTGRES_PASSWORD: "pwdfrdby"
+    ports:
+      - "5432:5432"

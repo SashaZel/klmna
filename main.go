@@ -3,11 +3,13 @@ package main
 import (
     "fmt"
     "net/http"
-    dbs "klmna/dbs"
     "log"
+    "klmna/internal/dbs"
 )
 
 func main() {
+    
+    fmt.Println(dbs.Sum(2, 2))
     
     db, err := dbs.CreateConnection()
     if err != nil {
