@@ -41,3 +41,11 @@ docker ps
 
 docker stop <container_hash>
 ```
+
+### Local DB run
+
+```
+docker-compose up
+
+psql -d "host=localhost port=5432 dbname=klmna-db user=klmna-user"
+```
