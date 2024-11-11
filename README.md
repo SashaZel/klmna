@@ -25,9 +25,11 @@ docker push cr.yandex/<container_registry_id>/klmna:0.2.1
 create VM, connent via SSH, install Docker, [login to YC container registry](https://yandex.cloud/ru/docs/container-registry/tutorials/run-docker-on-vm/console#run) 
 
 ```
+ssh -i <path_to_ssh_key>/<ssh_key_name> <vm_user_name>@<vm_public_ip>
+
 sudo docker pull cr.yandex/<container_registry_id>/klmna:0.2.1
 
-sudo docker run --rm -p 80:80 cr.yandex/<container_registry_id>/klmna:0.2.1
+sudo docker run -d --rm -p 80:80 cr.yandex/<container_registry_id>/klmna:0.2.1
 ```
 
 ### Local docker run
