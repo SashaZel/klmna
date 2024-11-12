@@ -1,27 +1,24 @@
 package main
 
 import (
-    "fmt"
-    "net/http"
-    "log"
-    "klmna/internal/dbs"
+	"klmna/pkg/api"
+	"klmna/pkg/db"
+	"log"
+	"net/http"
 )
 
 func main() {
-    
-    fmt.Println(dbs.Sum(2, 2))
-    
-    db, err := dbs.CreateConnection()
-    if err != nil {
-        log.Fatal(err)
-    }
+	log.Print("server is starting")
 
-    defer db.Close()
+	pgdb, err := db.StartDB()
+	if err != nil {
+		log.Printf("error starting the db %v", err)
+	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
-    })
-	fmt.Println("Server starts!")
+	router := api.StartAPI(pgdb)
 
-    http.ListenAndServe(":80", nil)
+	err = http.ListenAndServe(":80", router)
+	if err != nil {
+		log.Printf("error from router %v\n", err)
+	}
 }
