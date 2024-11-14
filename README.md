@@ -51,3 +51,9 @@ docker-compose up
 
 psql -d "host=localhost port=5432 dbname=klmna-db user=klmna-user"
 ```
+
+remove DB volumes
+
+```
+docker-compose down --volumes
+```

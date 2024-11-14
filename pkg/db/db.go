@@ -1,53 +1,57 @@
 package db
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"os"
 
-	"github.com/go-pg/migrations/v8"
-	"github.com/go-pg/pg/v10"
+	"database/sql"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/bun/driver/pgdriver"
+	"github.com/uptrace/bun/extra/bundebug"
+	"github.com/uptrace/bun/migrate"
+
+	"klmna/pkg/migrations"
 )
 
-func StartDB() (*pg.DB, error) {
-	var (
-		connectionString string
-		opts             *pg.Options
-		err              error
-	)
-
+func StartDB() *bun.DB {
+	var connectionString string
 	if os.Getenv("ENV") == "PROD" {
 		connectionString = os.Getenv("DATABASE_URL")
 	} else {
 		connectionString = "postgres://klmna-user:pwdfrdby@127.0.0.1:5432/klmna-db?sslmode=disable"
 	}
 
-	opts, err = pg.ParseURL(connectionString)
-	if err != nil {
-		return nil, err
-	}
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connectionString)))
 
-	db := pg.Connect(opts)
+	db := bun.NewDB(sqldb, pgdialect.New())
 
-	collection := migrations.NewCollection()
-	err = collection.DiscoverSQLMigrations("migrations")
-	if err != nil {
-		return nil, err
-	}
+	db.AddQueryHook(bundebug.NewQueryHook(
+		bundebug.WithEnabled(false),
+		bundebug.FromEnv(),
+	))
 
-	_, _, err = collection.Run(db, "init")
-	if err != nil {
-		return nil, err
-	}
+	migrations.Init()
 
-	oldVersion, newVersion, err := collection.Run(db, "up")
-	if err != nil {
-		return nil, err
+	ctx := context.Background()
+	migrator := migrate.NewMigrator(db, migrations.Migrations)
+	migrator.Init(ctx)
+	if err := migrator.Lock(ctx); err != nil {
+		log.Fatal(err)
 	}
-	if newVersion != oldVersion {
-		log.Printf("migrated from version %d to %d\n", oldVersion, newVersion)
+	defer migrator.Unlock(ctx) //nolint:errcheck
+
+	group, err := migrator.Migrate(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if group.IsZero() {
+		fmt.Printf("there are no new migrations to run (database is up to date)\n")
 	} else {
-		log.Printf("version is %d\n", oldVersion)
+		fmt.Printf("migrated to %s\n", group)
 	}
 
-	return db, err
+	return db
 }

@@ -5,18 +5,26 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-pg/pg/v10"
+
+	// "github.com/go-pg/pg/v10"
+
+	"github.com/uptrace/bun"
 
 	"klmna/pkg/db/models"
 )
 
-func StartAPI(pgdb *pg.DB) *chi.Mux {
+func StartAPI(pgdb *bun.DB) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger, middleware.WithValue("DB", pgdb))
+
+	r.Route("/pool", func(r chi.Router) {
+		r.Post("/", createPool)
+	})
 
 	r.Route("/project", func(r chi.Router) {
 		r.Get("/", getProject)
@@ -34,7 +42,22 @@ func StartAPI(pgdb *pg.DB) *chi.Mux {
 	return r
 }
 
+type CreatePoolRequest struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Input     string `json:"input"`
+	Output    string `json:"output"`
+	ProjectId int64  `json:"project_id"`
+}
+
+type PoolResponse struct {
+	Ok    bool         `json:"ok"`
+	Error string       `json:"error"`
+	Data  *models.Pool `json:"data"`
+}
+
 type CreateProjectRequest struct {
+	ID       int64  `json:"id"`
 	Name     string `json:"name"`
 	Template string `json:"template"`
 }
@@ -43,6 +66,86 @@ type ProjectResponse struct {
 	Ok    bool            `json:"ok"`
 	Error string          `json:"error"`
 	Data  *models.Project `json:"data"`
+}
+
+// type ProjectWithPoolsResponse struct {
+// 	Ok    bool                     `json:"ok"`
+// 	Error string                   `json:"error"`
+// 	Data  *models.ProjectWithPools `json:"data"`
+// }
+
+func createPool(w http.ResponseWriter, r *http.Request) {
+	req := &CreatePoolRequest{}
+	err := json.NewDecoder(r.Body).Decode(req)
+	if err != nil {
+		log.Printf("error in decode body %v \n", err)
+		res := &PoolResponse{
+			Ok:    false,
+			Error: "bad request",
+			Data:  nil,
+		}
+		err := json.NewEncoder(w).Encode(res)
+		if err != nil {
+			log.Printf("error in encode res to malformed req %v \n")
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	pgdb, ok := r.Context().Value("DB").(*bun.DB)
+	if !ok {
+		res := &ProjectsResponse{
+			Ok:    false,
+			Error: "fail to get DB context",
+			Data:  nil,
+		}
+		err := json.NewEncoder(w).Encode(res)
+		if err != nil {
+			log.Printf("error sending DB connection error response %v \n", err)
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	// project, err := models.GetProject(pgdb, req.ProjectId)
+	// project, err := models.GetProject(pgdb, fmt.Sprintf("%f", req.ProjectId))
+	project, err := models.GetProject(pgdb, strconv.Itoa(int(req.ProjectId)))
+	if err != nil {
+		log.Printf("no such project %v %v \n", req.ProjectId, err)
+	}
+
+	pool, err := models.CreatePool(pgdb, &models.Pool{
+		ID:      req.ID,
+		Name:    req.Name,
+		Input:   req.Input,
+		Output:  req.Output,
+		ProjectId: req.ProjectId,
+		Project: project,
+	})
+	if err != nil {
+		res := &ProjectResponse{
+			Ok:    false,
+			Error: "fail to create project at DB request",
+			Data:  nil,
+		}
+		err := json.NewEncoder(w).Encode(res)
+		if err != nil {
+			log.Printf("error in encode fail resp of creating project %v \n", err)
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	res := &PoolResponse{
+		Ok:    true,
+		Error: "",
+		Data:  pool,
+	}
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		log.Printf("error in encode positive response %v \n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func createProject(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +165,7 @@ func createProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pgdb, ok := r.Context().Value("DB").(*pg.DB)
+	pgdb, ok := r.Context().Value("DB").(*bun.DB)
 	if !ok {
 		res := &ProjectsResponse{
 			Ok:    false,
@@ -78,6 +181,7 @@ func createProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	project, err := models.CreateProject(pgdb, &models.Project{
+		ID:       req.ID,
 		Name:     req.Name,
 		Template: req.Template,
 	})
@@ -126,7 +230,7 @@ func getProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pgdb, ok := r.Context().Value("DB").(*pg.DB)
+	pgdb, ok := r.Context().Value("DB").(*bun.DB)
 	if !ok {
 		res := &ProjectsResponse{
 			Ok:    false,
@@ -143,6 +247,7 @@ func getProject(w http.ResponseWriter, r *http.Request) {
 
 	project, err := models.GetProject(pgdb, projectId[0])
 	if err != nil {
+		log.Printf("error in getting project from db %v \n", err)
 		res := &ProjectResponse{
 			Ok:    false,
 			Error: "error in getting project from db",
@@ -176,7 +281,7 @@ type ProjectsResponse struct {
 }
 
 func getProjects(w http.ResponseWriter, r *http.Request) {
-	pgdb, ok := r.Context().Value("DB").(*pg.DB)
+	pgdb, ok := r.Context().Value("DB").(*bun.DB)
 	if !ok {
 		res := &ProjectsResponse{
 			Ok:    false,
