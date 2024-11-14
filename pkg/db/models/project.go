@@ -4,10 +4,12 @@ import (
 	"github.com/go-pg/pg/v10"
 )
 
+
 type Project struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	Template string `json:"template"`
+	ID       int64   `json:"id"`
+	Name     string  `json:"name"`
+	Template string  `json:"template"`
+	Pools    []*Pool `pg:"rel:has-many" json:"pools"`
 }
 
 func GetProjects(db *pg.DB) ([]*Project, error) {
@@ -26,7 +28,7 @@ func CreateProject(db *pg.DB, req *Project) (*Project, error) {
 
 	project := &Project{}
 
-	err = db.Model(project).Where("project.id = ?", req.ID).Select()
+	err = db.Model(project).Relation("Pools").Where("project.id = ?", req.ID).Select()
 
 	return project, err
 }
@@ -34,7 +36,7 @@ func CreateProject(db *pg.DB, req *Project) (*Project, error) {
 func GetProject(db *pg.DB, projectId string) (*Project, error) {
 	project := &Project{}
 
-	err := db.Model(project).Where("project.id = ?", projectId).Select()
+	err := db.Model(project).Relation("Pools").Where("project.id = ?", projectId).Select()
 
 	return project, err
 }
