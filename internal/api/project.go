@@ -8,7 +8,7 @@ import (
 
 	"github.com/uptrace/bun"
 
-	"klmna/pkg/db/models"
+	"klmna/internal/db/models"
 )
 
 type ProjectsResponse struct {

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"klmna/pkg/api"
-	"klmna/pkg/db"
+	"klmna/internal/api"
+	"klmna/internal/db"
 	"log"
 	"net/http"
 )

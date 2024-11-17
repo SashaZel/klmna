@@ -13,7 +13,7 @@ import (
 	"github.com/uptrace/bun/extra/bundebug"
 	"github.com/uptrace/bun/migrate"
 
-	"klmna/pkg/migrations"
+	"klmna/internal/migrations"
 )
 
 func StartDB() *bun.DB {
