@@ -2,8 +2,8 @@ package models
 
 import (
 	"context"
-	"github.com/uptrace/bun"
 	uuid "github.com/google/uuid"
+	"github.com/uptrace/bun"
 )
 
 type NewPool struct {
@@ -16,7 +16,7 @@ type NewPool struct {
 
 type Pool struct {
 	*NewPool
-	ID        uuid.UUID    `bun:",pk" json:"id"`
+	ID uuid.UUID `bun:",pk" json:"id"`
 }
 
 func CreatePool(db *bun.DB, req *NewPool) (*Pool, error) {
@@ -24,7 +24,7 @@ func CreatePool(db *bun.DB, req *NewPool) (*Pool, error) {
 	id := uuid.New()
 	createdPool := &Pool{
 		NewPool: req,
-        ID: id,
+		ID:      id,
 	}
 	_, err := db.NewInsert().Model(createdPool).Exec(ctx)
 	if err != nil {

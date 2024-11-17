@@ -6,9 +6,9 @@ import (
 )
 
 type Project struct {
-	ID       int64  `bun:",pk" json:"id"`
-	Name     string `json:"name"`
-	Template string `json:"template"`
+	ID       int64   `bun:",pk" json:"id"`
+	Name     string  `json:"name"`
+	Template string  `json:"template"`
 	Pools    []*Pool `bun:"rel:has-many,join:id=project_id" json:"pools"`
 }
 
@@ -47,7 +47,7 @@ func GetProject(db *bun.DB, projectId string) (*Project, error) {
 		Relation("Pools").
 		Where("project.id = ?", projectId).
 		Scan(ctx)
-		
+
 		// ColumnExpr("project.*").
 		// ColumnExpr("pool.*").
 		// Join("JOIN pools ON pool.project_id = project.id").

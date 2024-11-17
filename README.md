@@ -57,3 +57,7 @@ remove DB volumes
 ```
 docker-compose down --volumes
 ```
+
+###
+
+formant your code `gofmt -w .`
