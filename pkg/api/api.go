@@ -43,7 +43,6 @@ func StartAPI(pgdb *bun.DB) *chi.Mux {
 }
 
 type CreatePoolRequest struct {
-	ID        int64  `json:"id"`
 	Name      string `json:"name"`
 	Input     string `json:"input"`
 	Output    string `json:"output"`
@@ -106,32 +105,27 @@ func createPool(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	// project, err := models.GetProject(pgdb, req.ProjectId)
-	// project, err := models.GetProject(pgdb, fmt.Sprintf("%f", req.ProjectId))
 	project, err := models.GetProject(pgdb, strconv.Itoa(int(req.ProjectId)))
 	if err != nil {
 		log.Printf("no such project %v %v \n", req.ProjectId, err)
 	}
 
-	pool, err := models.CreatePool(pgdb, &models.Pool{
-		ID:      req.ID,
-		Name:    req.Name,
-		Input:   req.Input,
-		Output:  req.Output,
+	pool, err := models.CreatePool(pgdb, &models.NewPool{
+		Name:      req.Name,
+		Input:     req.Input,
+		Output:    req.Output,
 		ProjectId: req.ProjectId,
-		Project: project,
+		Project:   project,
 	})
 	if err != nil {
+		log.Printf("fail to create pool at DB request %v \n", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		res := &ProjectResponse{
 			Ok:    false,
-			Error: "fail to create project at DB request",
+			Error: "fail to create pool at DB request",
 			Data:  nil,
 		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("error in encode fail resp of creating project %v \n", err)
-		}
-		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(res)
 		return
 	}
 
@@ -144,6 +138,7 @@ func createPool(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("error in encode positive response %v \n", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
@@ -208,6 +203,7 @@ func createProject(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("error in encode positive response %v \n", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 }

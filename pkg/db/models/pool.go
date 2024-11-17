@@ -3,10 +3,10 @@ package models
 import (
 	"context"
 	"github.com/uptrace/bun"
+	uuid "github.com/google/uuid"
 )
 
-type Pool struct {
-	ID        int64    `bun:",pk" json:"id"`
+type NewPool struct {
 	Name      string   `json:"name"`
 	Input     string   `json:"input"`
 	Output    string   `json:"output"`
@@ -14,9 +14,19 @@ type Pool struct {
 	Project   *Project `bun:"rel:has-one" json:"project"`
 }
 
-func CreatePool(db *bun.DB, req *Pool) (*Pool, error) {
+type Pool struct {
+	*NewPool
+	ID        uuid.UUID    `bun:",pk" json:"id"`
+}
+
+func CreatePool(db *bun.DB, req *NewPool) (*Pool, error) {
 	ctx := context.Background()
-	_, err := db.NewInsert().Model(req).Exec(ctx)
+	id := uuid.New()
+	createdPool := &Pool{
+		NewPool: req,
+        ID: id,
+	}
+	_, err := db.NewInsert().Model(createdPool).Exec(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +35,7 @@ func CreatePool(db *bun.DB, req *Pool) (*Pool, error) {
 
 	err = db.NewSelect().
 		Model(pool).
-		Where("pool.id = ?", req.ID).
+		Where("pool.id = ?", id).
 		Scan(ctx)
 
 	return pool, err
