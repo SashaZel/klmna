@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -9,8 +10,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-
-	// "github.com/go-pg/pg/v10"
 
 	"github.com/uptrace/bun"
 
@@ -22,24 +21,59 @@ func StartAPI(pgdb *bun.DB) *chi.Mux {
 
 	r.Use(middleware.Logger, middleware.WithValue("DB", pgdb))
 
+	r.NotFound(http.HandlerFunc(notFound))
+
+	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("pong"))
+	})
+
 	r.Route("/pool", func(r chi.Router) {
-		r.Post("/", createPool)
+		r.Post("/", errorWrapper(createPool))
 	})
 
 	r.Route("/project", func(r chi.Router) {
-		r.Get("/", getProject)
-		r.Post("/", createProject)
+		r.Get("/", errorWrapper(getProject))
+		r.Post("/", errorWrapper(createProject))
 	})
 
 	r.Route("/projects", func(r chi.Router) {
-		r.Get("/", getProjects)
-	})
-
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("hit the main"))
+		r.Get("/", errorWrapper(getProjects))
 	})
 
 	return r
+}
+
+func errorWrapper[F ~func(w http.ResponseWriter, r *http.Request) error](wrapped F) func(w http.ResponseWriter, r *http.Request) {
+	internal := func(w http.ResponseWriter, r *http.Request) {
+		err := wrapped(w, r)
+		if err != nil {
+			log.Printf("internal error %w \n", err)
+			res := &ProjectsResponse{
+				Ok:    false,
+				Error: "an error occurred",
+				Data:  nil,
+			}
+			w.WriteHeader(http.StatusInternalServerError)
+			err := json.NewEncoder(w).Encode(res)
+			if err != nil {
+				log.Printf("error sending error response %v \n", err)
+			}
+		}
+	}
+	return internal
+}
+
+func notFound(w http.ResponseWriter, r *http.Request) {
+	res := &ProjectsResponse{
+		Ok:    false,
+		Error: "not found",
+		Data:  nil,
+	}
+	w.WriteHeader(http.StatusNotFound)
+	err := json.NewEncoder(w).Encode(res)
+	if err != nil {
+		log.Printf("error sending 404 response %v \n", err)
+	}
 }
 
 type CreatePoolRequest struct {
@@ -67,47 +101,20 @@ type ProjectResponse struct {
 	Data  *models.Project `json:"data"`
 }
 
-// type ProjectWithPoolsResponse struct {
-// 	Ok    bool                     `json:"ok"`
-// 	Error string                   `json:"error"`
-// 	Data  *models.ProjectWithPools `json:"data"`
-// }
-
-func createPool(w http.ResponseWriter, r *http.Request) {
+func createPool(w http.ResponseWriter, r *http.Request) error {
 	req := &CreatePoolRequest{}
 	err := json.NewDecoder(r.Body).Decode(req)
 	if err != nil {
-		log.Printf("error in decode body %v \n", err)
-		res := &PoolResponse{
-			Ok:    false,
-			Error: "bad request",
-			Data:  nil,
-		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("error in encode res to malformed req %v \n")
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return err
 	}
 
 	pgdb, ok := r.Context().Value("DB").(*bun.DB)
 	if !ok {
-		res := &ProjectsResponse{
-			Ok:    false,
-			Error: "fail to get DB context",
-			Data:  nil,
-		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("error sending DB connection error response %v \n", err)
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return errors.New("fail to connect DB")
 	}
 	project, err := models.GetProject(pgdb, strconv.Itoa(int(req.ProjectId)))
 	if err != nil {
-		log.Printf("no such project %v %v \n", req.ProjectId, err)
+		return err
 	}
 
 	pool, err := models.CreatePool(pgdb, &models.NewPool{
@@ -118,15 +125,7 @@ func createPool(w http.ResponseWriter, r *http.Request) {
 		Project:   project,
 	})
 	if err != nil {
-		log.Printf("fail to create pool at DB request %v \n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		res := &ProjectResponse{
-			Ok:    false,
-			Error: "fail to create pool at DB request",
-			Data:  nil,
-		}
-		json.NewEncoder(w).Encode(res)
-		return
+		return err
 	}
 
 	res := &PoolResponse{
@@ -136,43 +135,21 @@ func createPool(w http.ResponseWriter, r *http.Request) {
 	}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		log.Printf("error in encode positive response %v \n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
-	w.WriteHeader(http.StatusOK)
+	return nil
 }
 
-func createProject(w http.ResponseWriter, r *http.Request) {
+func createProject(w http.ResponseWriter, r *http.Request) error {
 	req := &CreateProjectRequest{}
 	err := json.NewDecoder(r.Body).Decode(req)
 	if err != nil {
-		res := &ProjectResponse{
-			Ok:    false,
-			Error: "bad request",
-			Data:  nil,
-		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("error in encode res to malformed req %v \n")
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return err
 	}
 
 	pgdb, ok := r.Context().Value("DB").(*bun.DB)
 	if !ok {
-		res := &ProjectsResponse{
-			Ok:    false,
-			Error: "fail to get DB context",
-			Data:  nil,
-		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("error sending DB connection error response %v \n", err)
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return errors.New("fail to connect DB")
 	}
 
 	project, err := models.CreateProject(pgdb, &models.Project{
@@ -181,17 +158,7 @@ func createProject(w http.ResponseWriter, r *http.Request) {
 		Template: req.Template,
 	})
 	if err != nil {
-		res := &ProjectResponse{
-			Ok:    false,
-			Error: "fail to create project at DB request",
-			Data:  nil,
-		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("error in encode fail resp of creating project %v \n", err)
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	res := &ProjectResponse{
@@ -201,60 +168,26 @@ func createProject(w http.ResponseWriter, r *http.Request) {
 	}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		log.Printf("error in encode positive response %v \n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
-	w.WriteHeader(http.StatusOK)
+	return nil
 }
 
-func getProject(w http.ResponseWriter, r *http.Request) {
-	// projectId, ok := r.URL.Query()["projectId"]
+func getProject(w http.ResponseWriter, r *http.Request) error {
 	queryParams, err := url.ParseQuery(r.URL.RawQuery)
 	projectId := queryParams["projectId"]
 	if err != nil {
-		res := &ProjectResponse{
-			Ok:    false,
-			Error: "malformed request",
-			Data:  nil,
-		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("error sending error resp at malformed req %v \n", err)
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		return err
 	}
 
 	pgdb, ok := r.Context().Value("DB").(*bun.DB)
 	if !ok {
-		res := &ProjectsResponse{
-			Ok:    false,
-			Error: "fail to get DB context",
-			Data:  nil,
-		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("error sending DB connection error response %v \n", err)
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return errors.New("fail to connect DB")
 	}
 
 	project, err := models.GetProject(pgdb, projectId[0])
 	if err != nil {
-		log.Printf("error in getting project from db %v \n", err)
-		res := &ProjectResponse{
-			Ok:    false,
-			Error: "error in getting project from db",
-			Data:  nil,
-		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("error in sending error form req to db %v \n", err)
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	res := &ProjectResponse{
@@ -264,10 +197,9 @@ func getProject(w http.ResponseWriter, r *http.Request) {
 	}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		log.Printf("error in encode positive response %v \n", err)
+		return err
 	}
-	w.WriteHeader(http.StatusOK)
-	return
+	return nil
 }
 
 type ProjectsResponse struct {
@@ -276,35 +208,15 @@ type ProjectsResponse struct {
 	Data  []*models.Project `json:"data"`
 }
 
-func getProjects(w http.ResponseWriter, r *http.Request) {
+func getProjects(w http.ResponseWriter, r *http.Request) error {
 	pgdb, ok := r.Context().Value("DB").(*bun.DB)
 	if !ok {
-		res := &ProjectsResponse{
-			Ok:    false,
-			Error: "fail to get DB context",
-			Data:  nil,
-		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("error sending DB connection error response %v \n", err)
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return errors.New("fail to connect DB")
 	}
 
 	projects, err := models.GetProjects(pgdb)
 	if err != nil {
-		res := &ProjectsResponse{
-			Ok:    false,
-			Error: err.Error(),
-			Data:  nil,
-		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("error sending db model error response %v \n", err)
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	res := &ProjectsResponse{
@@ -314,9 +226,8 @@ func getProjects(w http.ResponseWriter, r *http.Request) {
 	}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		log.Printf("error encode response %v \n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 	w.WriteHeader(http.StatusOK)
+	return nil
 }
