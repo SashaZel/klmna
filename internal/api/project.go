@@ -65,8 +65,7 @@ func createProject(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("fail to connect DB")
 	}
 
-	project, err := models.CreateProject(pgdb, &models.Project{
-		ID:       req.ID,
+	project, err := models.CreateProject(pgdb, &models.NewProject{
 		Name:     req.Name,
 		Template: req.Template,
 	})

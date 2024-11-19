@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
+	"log"
 
 	"github.com/uptrace/bun"
 
@@ -15,7 +15,7 @@ type CreatePoolRequest struct {
 	Name      string `json:"name"`
 	Input     string `json:"input"`
 	Output    string `json:"output"`
-	ProjectId int64  `json:"project_id"`
+	ProjectId string `json:"project_id"`
 }
 
 type PoolResponse struct {
@@ -35,7 +35,8 @@ func createPool(w http.ResponseWriter, r *http.Request) error {
 	if !ok {
 		return errors.New("fail to connect DB")
 	}
-	project, err := models.GetProject(pgdb, strconv.Itoa(int(req.ProjectId)))
+	project, err := models.GetProject(pgdb, req.ProjectId)
+	log.Printf("project %w \n", project.ID)
 	if err != nil {
 		return err
 	}

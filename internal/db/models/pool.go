@@ -4,27 +4,30 @@ import (
 	"context"
 	uuid "github.com/google/uuid"
 	"github.com/uptrace/bun"
+	"time"
 )
 
 type NewPool struct {
 	Name      string   `json:"name"`
 	Input     string   `json:"input"`
 	Output    string   `json:"output"`
-	ProjectId int64    `json:"userId"`
-	Project   *Project `bun:"rel:has-one" json:"project"`
+	ProjectId string   `json:"project_id"`
+	Project   *Project `bun:"rel:belongs-to" json:"project"`
 }
 
 type Pool struct {
 	*NewPool
-	ID uuid.UUID `bun:",pk" json:"id"`
+	ID        uuid.UUID `bun:",pk" json:"id"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func CreatePool(db *bun.DB, req *NewPool) (*Pool, error) {
 	ctx := context.Background()
 	id := uuid.New()
 	createdPool := &Pool{
-		NewPool: req,
-		ID:      id,
+		NewPool:   req,
+		ID:        id,
+		CreatedAt: time.Now(),
 	}
 	_, err := db.NewInsert().Model(createdPool).Exec(ctx)
 	if err != nil {
