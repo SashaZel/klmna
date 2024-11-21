@@ -1,6 +1,0 @@
-CREATE TABLE IF NOT EXISTS projects (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    creation_date DATE DEFAULT CURRENT_DATE
-    template VARCHAR
-);

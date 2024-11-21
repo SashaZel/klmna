@@ -1,8 +1,8 @@
 package main
 
 import (
-	"klmna/pkg/api"
-	"klmna/pkg/db"
+	"klmna/internal/api"
+	"klmna/internal/db"
 	"log"
 	"net/http"
 )
@@ -10,14 +10,13 @@ import (
 func main() {
 	log.Print("server is starting")
 
-	pgdb, err := db.StartDB()
-	if err != nil {
-		log.Printf("error starting the db %v", err)
-	}
+	pgdb := db.StartDB()
 
 	router := api.StartAPI(pgdb)
 
-	err = http.ListenAndServe(":80", router)
+	defer pgdb.Close()
+
+	err := http.ListenAndServe(":80", router)
 	if err != nil {
 		log.Printf("error from router %v\n", err)
 	}
