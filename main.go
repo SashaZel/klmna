@@ -14,6 +14,8 @@ func main() {
 
 	router := api.StartAPI(pgdb)
 
+	// defer pgdb.Close()
+
 	err := http.ListenAndServe(":80", router)
 	if err != nil {
 		log.Printf("error from router %v\n", err)

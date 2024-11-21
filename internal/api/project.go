@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/uptrace/bun"
+	// "github.com/uptrace/bun"
 
 	"klmna/internal/db/models"
+	// "github.com/jackc/pgx/v5/pgxpool"
+	"database/sql"
 )
 
 type ProjectsResponse struct {
@@ -18,7 +20,7 @@ type ProjectsResponse struct {
 }
 
 func getProjects(w http.ResponseWriter, r *http.Request) error {
-	pgdb, ok := r.Context().Value("DB").(*bun.DB)
+	pgdb, ok := r.Context().Value("DB").(*sql.DB)
 	if !ok {
 		return errors.New("fail to connect DB")
 	}
@@ -60,7 +62,7 @@ func createProject(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	pgdb, ok := r.Context().Value("DB").(*bun.DB)
+	pgdb, ok := r.Context().Value("DB").(*sql.DB)
 	if !ok {
 		return errors.New("fail to connect DB")
 	}
@@ -92,7 +94,7 @@ func getProject(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	pgdb, ok := r.Context().Value("DB").(*bun.DB)
+	pgdb, ok := r.Context().Value("DB").(*sql.DB)
 	if !ok {
 		return errors.New("fail to connect DB")
 	}

@@ -8,13 +8,15 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"github.com/uptrace/bun"
+	// "github.com/uptrace/bun"
+	// "github.com/jackc/pgx/v5/pgxpool"
+	"database/sql"
 )
 
-func StartAPI(pgdb *bun.DB) *chi.Mux {
+func StartAPI(db *sql.DB) *chi.Mux {
 	r := chi.NewRouter()
 
-	r.Use(middleware.Logger, middleware.WithValue("DB", pgdb))
+	r.Use(middleware.Logger, middleware.WithValue("DB", db))
 
 	r.NotFound(http.HandlerFunc(notFound))
 

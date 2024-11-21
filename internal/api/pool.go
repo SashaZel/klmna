@@ -1,12 +1,13 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
+	// "encoding/json"
+	// "errors"
 	"net/http"
-	"log"
+	// "log"
 
-	"github.com/uptrace/bun"
+	// "github.com/uptrace/bun"
 
 	"klmna/internal/db/models"
 )
@@ -25,41 +26,42 @@ type PoolResponse struct {
 }
 
 func createPool(w http.ResponseWriter, r *http.Request) error {
-	req := &CreatePoolRequest{}
-	err := json.NewDecoder(r.Body).Decode(req)
-	if err != nil {
-		return err
-	}
+	return errors.New("not implemented")
+	// req := &CreatePoolRequest{}
+	// err := json.NewDecoder(r.Body).Decode(req)
+	// if err != nil {
+	// 	return err
+	// }
 
-	pgdb, ok := r.Context().Value("DB").(*bun.DB)
-	if !ok {
-		return errors.New("fail to connect DB")
-	}
-	project, err := models.GetProject(pgdb, req.ProjectId)
-	log.Printf("project %w \n", project.ID)
-	if err != nil {
-		return err
-	}
+	// pgdb, ok := r.Context().Value("DB").(*bun.DB)
+	// if !ok {
+	// 	return errors.New("fail to connect DB")
+	// }
+	// project, err := models.GetProject(pgdb, req.ProjectId)
+	// log.Printf("project %w \n", project.ID)
+	// if err != nil {
+	// 	return err
+	// }
 
-	pool, err := models.CreatePool(pgdb, &models.NewPool{
-		Name:      req.Name,
-		Input:     req.Input,
-		Output:    req.Output,
-		ProjectId: req.ProjectId,
-		Project:   project,
-	})
-	if err != nil {
-		return err
-	}
+	// pool, err := models.CreatePool(pgdb, &models.NewPool{
+	// 	Name:      req.Name,
+	// 	Input:     req.Input,
+	// 	Output:    req.Output,
+	// 	ProjectId: req.ProjectId,
+	// 	Project:   project,
+	// })
+	// if err != nil {
+	// 	return err
+	// }
 
-	res := &PoolResponse{
-		Ok:    true,
-		Error: "",
-		Data:  pool,
-	}
-	err = json.NewEncoder(w).Encode(res)
-	if err != nil {
-		return err
-	}
-	return nil
+	// res := &PoolResponse{
+	// 	Ok:    true,
+	// 	Error: "",
+	// 	Data:  pool,
+	// }
+	// err = json.NewEncoder(w).Encode(res)
+	// if err != nil {
+	// 	return err
+	// }
+	// return nil
 }
