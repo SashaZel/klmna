@@ -6,10 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	// "github.com/uptrace/bun"
-
 	"klmna/internal/db/models"
-	// "github.com/jackc/pgx/v5/pgxpool"
 	"database/sql"
 )
 

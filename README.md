@@ -22,7 +22,7 @@ docker tag klmna:0.2.1 cr.yandex/<container_registry_id>/klmna:0.2.1
 docker push cr.yandex/<container_registry_id>/klmna:0.2.1
 ```
 
-create VM, connent via SSH, install Docker, [login to YC container registry](https://yandex.cloud/ru/docs/container-registry/tutorials/run-docker-on-vm/console#run) 
+create VM, connent via SSH, install Docker, [login to YC container registry](https://yandex.cloud/ru/docs/container-registry/tutorials/run-docker-on-vm/console#run)
 
 ```
 ssh -i <path_to_ssh_key>/<ssh_key_name> <vm_user_name>@<vm_public_ip>
@@ -44,6 +44,10 @@ docker ps
 docker stop <container_hash>
 ```
 
+### Migrations
+
+Migrations in folder `internal/db/migrations` and run at app start
+
 ### Local DB run
 
 ```
@@ -58,6 +62,7 @@ remove DB volumes
 docker-compose down --volumes
 ```
 
-###
+### Keep app
 
-formant your code `gofmt -w .`
+- formatted `gofmt -s -w .`
+- tidy `go mod tidy`
