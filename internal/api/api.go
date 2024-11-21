@@ -1,16 +1,13 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-
-	// "github.com/uptrace/bun"
-	// "github.com/jackc/pgx/v5/pgxpool"
-	"database/sql"
 )
 
 func StartAPI(db *sql.DB) *chi.Mux {

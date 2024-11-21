@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"klmna/internal/db/models"
 	"database/sql"
+	"klmna/internal/db/models"
 )
 
 type ProjectsResponse struct {

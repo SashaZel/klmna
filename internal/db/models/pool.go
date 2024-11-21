@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"time"
-	
+
 	uuid "github.com/google/uuid"
 )
 
@@ -16,11 +16,11 @@ type NewPool struct {
 }
 
 type Pool struct {
-	ID uuid.UUID `json:"id"`
-	Name      string `json:"name"`
-	Input     string `json:"input"`
-	Output    string `json:"output"`
-	ProjectId string         `json:"project_id"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Input     string    `json:"input"`
+	Output    string    `json:"output"`
+	ProjectId string    `json:"project_id"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

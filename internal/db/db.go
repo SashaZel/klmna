@@ -2,11 +2,11 @@ package db
 
 import (
 	"context"
-	"log"
-	"os"
+	"database/sql"
 	"embed"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"database/sql"
+	"log"
+	"os"
 
 	"github.com/pressly/goose/v3"
 )
@@ -31,22 +31,21 @@ func StartDB() *sql.DB {
 	pool.SetMaxIdleConns(3)
 	pool.SetMaxOpenConns(3)
 
-
 	if err := pool.PingContext(context.Background()); err != nil {
 		log.Fatal("error ping db %#w", err)
 	}
 
 	// migrations
 
-    goose.SetBaseFS(embedMigrations)
+	goose.SetBaseFS(embedMigrations)
 
-    if err := goose.SetDialect("postgres"); err != nil {
-        panic(err)
-    }
+	if err := goose.SetDialect("postgres"); err != nil {
+		panic(err)
+	}
 
-    if err := goose.Up(pool, "migrations"); err != nil {
-        panic(err)
-    }
+	if err := goose.Up(pool, "migrations"); err != nil {
+		panic(err)
+	}
 
 	return pool
 }

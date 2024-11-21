@@ -2,9 +2,9 @@ package models
 
 import (
 	"context"
-	"time"
 	"database/sql"
-	
+	"time"
+
 	uuid "github.com/google/uuid"
 )
 
