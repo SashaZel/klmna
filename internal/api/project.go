@@ -108,7 +108,6 @@ func createProject(w http.ResponseWriter, r *http.Request) error {
 }
 
 func getProject(w http.ResponseWriter, r *http.Request) error {
-
 	ctx := r.Context()
 	project, ok := ctx.Value("project").(*models.Project)
 	if !ok {
@@ -128,6 +127,40 @@ func getProject(w http.ResponseWriter, r *http.Request) error {
 		Ok:    true,
 		Error: "",
 		Data:  projectWithPools,
+	}
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getRandomTask(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	project, ok := ctx.Value("project").(*models.Project)
+	if !ok {
+		return errors.New("fail to get project from co")
+	}
+	pgdb, ok := r.Context().Value("DB").(*sql.DB)
+	if !ok {
+		return errors.New("fail to connect DB")
+	}
+	//
+	taskInput, err := models.GetTaskInput(pgdb, project.ID.String())
+	if err != nil {
+		return err
+	}
+
+	err = models.UpdateAssignDate(pgdb, taskInput.ID)
+	if err != nil {
+		return err
+	}
+
+	res := &TaskResponse{
+		Ok:    true,
+		Error: "",
+		Input: taskInput,
+		Template: project.Template,
 	}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	uuid "github.com/google/uuid"
@@ -20,6 +21,11 @@ type Task struct {
 	Output     string    `json:"output"`
 	ProjectID  uuid.UUID `json:"project_id"`
 	PoolID     uuid.UUID `json:"pool_id"`
+}
+
+type TaskInput struct {
+	ID    uuid.UUID `json:"id"`
+	Input string    `json:"input"`
 }
 
 func CreateTask(db *sql.DB, tasks []string, poolId uuid.UUID, projectID string) error {
@@ -46,5 +52,25 @@ func CreateTask(db *sql.DB, tasks []string, poolId uuid.UUID, projectID string) 
 	}
 
 	_, err := db.Exec(sqlQuery, params...)
+	return err
+}
+
+func GetTaskInput(db *sql.DB, projectId string) (*TaskInput, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	taskInput := &TaskInput{}
+	selectSqlStatement := "SELECT id, input FROM tasks WHERE tasks.project_id = $1 AND tasks.assigned_at is null"
+	err := db.QueryRowContext(ctx, selectSqlStatement, projectId).Scan(&taskInput.ID, &taskInput.Input)
+	if err != nil {
+		return nil, err
+	}
+	return taskInput, nil
+}
+
+func UpdateAssignDate(db *sql.DB, taskId uuid.UUID) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	updateSqlStatement := "UPDATE tasks SET assigned_at = $1 WHERE id = $2"
+	_, err := db.ExecContext(ctx, updateSqlStatement, time.Now(), taskId)
 	return err
 }
