@@ -69,9 +69,9 @@ func GetPoolWithTasks(db *sql.DB, poolId string) (*Pool, error) {
 	selectSqlStatement := `
 		SELECT 
 		pools.id, pools.name, pools.description, pools.created_at, pools.project_id,
-		tasks.id, tasks.created_at, tasks.assigned_at, tasks.input, tasks.output, tasks.pool_id
+		tasks.id, tasks.created_at, tasks.assigned_at, tasks.input, tasks.output, tasks.project_id, tasks.pool_id
 		FROM pools
-		LEFT JOIN tasks ON pools.id = tasks.pool_id AND pools.id = $1
+		LEFT JOIN tasks ON pools.id = tasks.pool_id AND tasks.pool_id = $1
 		ORDER BY tasks.created_at
     `
 	rows, err := db.QueryContext(ctx, selectSqlStatement, poolId)
@@ -87,6 +87,7 @@ func GetPoolWithTasks(db *sql.DB, poolId string) (*Pool, error) {
 		var taskAssignedAt sql.NullTime
 		var taskInput sql.NullString
 		var taskOutput sql.NullString
+		var taskProjectId uuid.UUID
 		var taskPoolId uuid.UUID
 		err := rows.Scan(
 			&pool.ID,
@@ -99,6 +100,7 @@ func GetPoolWithTasks(db *sql.DB, poolId string) (*Pool, error) {
 			&taskAssignedAt,
 			&taskInput,
 			&taskOutput,
+			&taskProjectId,
 			&taskPoolId,
 		)
 		if err != nil {
@@ -110,6 +112,7 @@ func GetPoolWithTasks(db *sql.DB, poolId string) (*Pool, error) {
 			task.AssignedAt = taskAssignedAt.Time
 			task.Input = taskInput.String
 			task.Output = taskOutput.String
+			task.ProjectID = taskProjectId
 			task.PoolID = taskPoolId
 			tasks = append(tasks, task)
 		}

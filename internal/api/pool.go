@@ -79,7 +79,7 @@ func createPool(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	err = models.CreateTask(pgdb, tasks, pool.ID)
+	err = models.CreateTask(pgdb, tasks, pool.ID, pool.ProjectId)
 	if err != nil {
 		return err
 	}

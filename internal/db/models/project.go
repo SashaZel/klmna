@@ -93,7 +93,7 @@ func GetProjectWithPools(db *sql.DB, projectId string) (*Project, error) {
 		pools.id, pools.name, pools.description, pools.created_at,
 		projects.id, projects.name, projects.created_at, projects.template 
 		FROM projects 
-		LEFT JOIN pools ON projects.id = pools.project_id AND projects.id = $1
+		LEFT JOIN pools ON pools.project_id = projects.id AND pools.project_id = $1
 		ORDER BY pools.created_at
     `
 	rows, err := db.QueryContext(ctx, selectSqlStatement, projectId)
@@ -105,9 +105,9 @@ func GetProjectWithPools(db *sql.DB, projectId string) (*Project, error) {
 	for rows.Next() {
 		pool := &Pool{}
 		var poolID uuid.UUID
-		var poolName *sql.NullString
-		var poolDescription *sql.NullString
-		var poolCreatedAt time.Time
+		var poolName sql.NullString
+		var poolDescription sql.NullString
+		var poolCreatedAt sql.NullTime
 		err := rows.Scan(&poolID, &poolName, &poolDescription, &poolCreatedAt, &project.ID, &project.Name, &project.CreatedAt, &project.Template)
 		if err != nil {
 			return nil, err
@@ -116,7 +116,7 @@ func GetProjectWithPools(db *sql.DB, projectId string) (*Project, error) {
 			pool.ID = poolID
 			pool.Name = poolName.String
 			pool.Description = poolDescription.String
-			pool.CreatedAt = poolCreatedAt
+			pool.CreatedAt = poolCreatedAt.Time
 			pools = append(pools, pool)
 		}
 	}

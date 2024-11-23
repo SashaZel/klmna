@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     assigned_at TIMESTAMP,
     input VARCHAR,
     output VARCHAR,
+    project_id UUID REFERENCES projects(id),
     pool_id UUID REFERENCES pools(id)
 );
 -- +goose StatementEnd

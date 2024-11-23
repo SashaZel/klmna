@@ -1,7 +1,6 @@
 package models
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	uuid "github.com/google/uuid"
@@ -19,31 +18,23 @@ type Task struct {
 	AssignedAt time.Time `json:"assigned_at"`
 	Input      string    `json:"input"`
 	Output     string    `json:"output"`
+	ProjectID  uuid.UUID `json:"project_id"`
 	PoolID     uuid.UUID `json:"pool_id"`
 }
 
-func CreateTask(db *sql.DB, tasks []string, poolId uuid.UUID) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	pool := &Pool{}
-	checkIfPoolExistSqlStatement := "SELECT id FROM pools WHERE id = $1"
-	err := db.QueryRowContext(ctx, checkIfPoolExistSqlStatement, poolId).Scan(&pool.ID)
-	if err != nil {
-		return err
-	}
-
+func CreateTask(db *sql.DB, tasks []string, poolId uuid.UUID, projectID string) error {
 	valueStrings := make([]string, 0, len(tasks))
-	valueArgs := make([]interface{}, 0, len(tasks)*3)
+	valueArgs := make([]interface{}, 0, len(tasks)*4)
 	i := 0
 	for _, task := range tasks {
-		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d)", i*3+1, i*3+2, i*3+3))
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d)", i*4+1, i*4+2, i*4+3, i*4+4))
 		valueArgs = append(valueArgs, time.Now())
 		valueArgs = append(valueArgs, task)
+		valueArgs = append(valueArgs, projectID)
 		valueArgs = append(valueArgs, poolId)
 		i++
 	}
-	sqlQuery := fmt.Sprintf("INSERT INTO tasks (created_at, input, pool_id) VALUES %s", strings.Join(valueStrings, ","))
+	sqlQuery := fmt.Sprintf("INSERT INTO tasks (created_at, input, project_id, pool_id) VALUES %s", strings.Join(valueStrings, ","))
 
 	var params []interface{}
 
@@ -54,6 +45,6 @@ func CreateTask(db *sql.DB, tasks []string, poolId uuid.UUID) error {
 		params = append(params, param)
 	}
 
-	_, err = db.Exec(sqlQuery, params...)
+	_, err := db.Exec(sqlQuery, params...)
 	return err
 }
