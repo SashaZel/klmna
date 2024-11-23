@@ -73,10 +73,24 @@ func GetProject(db *sql.DB, projectId string) (*Project, error) {
 	defer cancel()
 
 	project := &Project{}
+	selectSqlStatement := "SELECT id, name, created_at, template FROM projects WHERE id = $1"
+	err := db.QueryRowContext(ctx, selectSqlStatement, projectId).Scan(&project.ID, &project.Name, &project.CreatedAt, &project.Template)
+	if err != nil {
+		return nil, err
+	}
+
+	return project, nil
+}
+
+func GetProjectWithPools(db *sql.DB, projectId string) (*Project, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	project := &Project{}
 	pools := make([]*Pool, 0)
 	selectSqlStatement := `
 		SELECT 
-		pools.id, pools.name, pools.created_at, pools.input, pools.output,
+		pools.id, pools.name, pools.description, pools.created_at,
 		projects.id, projects.name, projects.created_at, projects.template 
 		FROM projects 
 		LEFT JOIN pools ON projects.id = pools.project_id AND projects.id = $1
@@ -90,11 +104,21 @@ func GetProject(db *sql.DB, projectId string) (*Project, error) {
 
 	for rows.Next() {
 		pool := &Pool{}
-		err := rows.Scan(&pool.ID, &pool.Name, &pool.CreatedAt, &pool.Input, &pool.Output, &project.ID, &project.Name, &project.CreatedAt, &project.Template)
+		var poolID uuid.UUID
+		var poolName *sql.NullString
+		var poolDescription *sql.NullString
+		var poolCreatedAt time.Time
+		err := rows.Scan(&poolID, &poolName, &poolDescription, &poolCreatedAt, &project.ID, &project.Name, &project.CreatedAt, &project.Template)
 		if err != nil {
 			return nil, err
 		}
-		pools = append(pools, pool)
+		if poolID.String() != "" && poolName.Valid {
+			pool.ID = poolID
+			pool.Name = poolName.String
+			pool.Description = poolDescription.String
+			pool.CreatedAt = poolCreatedAt
+			pools = append(pools, pool)
+		}
 	}
 	project.Pools = pools
 
