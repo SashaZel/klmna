@@ -6,6 +6,12 @@ WORKDIR /app
  
 # Copies everything from your root directory into /app
 COPY . .
+
+ENV POSTGRES_DB $POSTGRES_DB
+ENV POSTGRES_USER $POSTGRES_USER
+ENV POSTGRES_PASSWORD $POSTGRES_PASSWORD
+ENV POSTGRES_HOST $POSTGRES_HOST
+ENV POSTGRES_PORT $POSTGRES_PORT
  
 # # Installs Go dependencies
 RUN go mod download

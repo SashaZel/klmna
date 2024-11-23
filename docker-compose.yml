@@ -5,8 +5,8 @@ services:
     image: postgres:17.0
     restart: unless-stopped
     environment:
-      POSTGRES_DB: "klmna-db"
-      POSTGRES_USER: "klmna-user"
-      POSTGRES_PASSWORD: "pwdfrdby"
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"

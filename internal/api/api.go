@@ -21,17 +21,31 @@ func StartAPI(db *sql.DB) *chi.Mux {
 		w.Write([]byte("pong"))
 	})
 
-	r.Route("/pool", func(r chi.Router) {
-		r.Post("/", errorWrapper(createPool))
-	})
-
 	r.Route("/project", func(r chi.Router) {
-		r.Get("/", errorWrapper(getProject))
+
 		r.Post("/", errorWrapper(createProject))
+
+		r.Route("/{projectID}", func(r chi.Router) {
+			r.Use(projectCtx)
+			r.Get("/", errorWrapper(getProject))
+			r.Get("/random_task", errorWrapper(getRandomTask))
+
+			r.Route("/pool", func(r chi.Router) {
+				r.Post("/", errorWrapper(createPool))
+				r.Route("/{poolID}", func(r chi.Router) {
+					r.Use(poolCtx)
+					r.Get("/", errorWrapper(getPool))
+				})
+			})
+		})
 	})
 
 	r.Route("/projects", func(r chi.Router) {
 		r.Get("/", errorWrapper(getProjects))
+	})
+
+	r.Route("/task", func(r chi.Router) {
+		r.Put("/solution", errorWrapper(saveTaskSolution))
 	})
 
 	return r
