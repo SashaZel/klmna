@@ -1,2 +1,5 @@
+.env
+prod.env
+.postgresql
 /junk
 klmna

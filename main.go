@@ -18,6 +18,6 @@ func main() {
 
 	err := http.ListenAndServe(":80", router)
 	if err != nil {
-		log.Printf("error from router %v\n", err)
+		log.Fatal("error from router %v\n", err)
 	}
 }
