@@ -157,9 +157,9 @@ func getRandomTask(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	res := &TaskResponse{
-		Ok:    true,
-		Error: "",
-		Input: taskInput,
+		Ok:       true,
+		Error:    "",
+		Input:    taskInput,
 		Template: project.Template,
 	}
 	err = json.NewEncoder(w).Encode(res)

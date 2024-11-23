@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     created_at TIMESTAMP,
     assigned_at TIMESTAMP,
     input VARCHAR,
-    output VARCHAR,
+    solution VARCHAR,
     project_id UUID REFERENCES projects(id),
     pool_id UUID REFERENCES pools(id)
 );
