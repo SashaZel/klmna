@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	uuid "github.com/google/uuid"
@@ -66,6 +67,26 @@ func CreateProject(db *sql.DB, req *NewProject) (*Project, error) {
 	}
 
 	return project, nil
+}
+
+func UpdateProject(db *sql.DB, projectID uuid.UUID, updateReq *NewProject) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	updateSqlStatement := `
+		UPDATE projects 
+		SET name = $1, template = $2 
+		WHERE id = $3
+	`
+	result, err := db.ExecContext(ctx, updateSqlStatement, &updateReq.Name, &updateReq.Template, projectID)
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected != 1 {
+		return errors.New("no such row")
+	}
+	return err
 }
 
 func GetProject(db *sql.DB, projectId string) (*Project, error) {

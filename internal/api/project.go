@@ -135,6 +135,46 @@ func getProject(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func updateProject(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	project, ok := ctx.Value("project").(*models.Project)
+	if !ok {
+		return errors.New("fail to get project from context")
+	}
+
+	req := &CreateProjectRequest{}
+	err := json.NewDecoder(r.Body).Decode(req)
+
+	pgdb, ok := r.Context().Value("DB").(*sql.DB)
+	if !ok {
+		return errors.New("fail to get project from co")
+	}
+
+	err = models.UpdateProject(pgdb, project.ID, &models.NewProject{
+		Name:     req.Name,
+		Template: req.Template,
+	})
+	if err != nil {
+		return err
+	}
+
+	projectWithPools, err := models.GetProjectWithPools(pgdb, project.ID.String())
+	if err != nil {
+		return err
+	}
+
+	res := &ProjectResponse{
+		Ok:    true,
+		Error: "",
+		Data:  projectWithPools,
+	}
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func getRandomTask(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	project, ok := ctx.Value("project").(*models.Project)
