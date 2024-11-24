@@ -147,7 +147,7 @@ func updateProject(w http.ResponseWriter, r *http.Request) error {
 
 	pgdb, ok := r.Context().Value("DB").(*sql.DB)
 	if !ok {
-		return errors.New("fail to get project from co")
+		return errors.New("fail to get DB from context")
 	}
 
 	err = models.UpdateProject(pgdb, project.ID, &models.NewProject{
@@ -173,6 +173,22 @@ func updateProject(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	return nil
+}
+
+func deleteProject(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	project, ok := ctx.Value("project").(*models.Project)
+	if !ok {
+		return errors.New("fail to get project from context")
+	}
+
+	pgdb, ok := r.Context().Value("DB").(*sql.DB)
+	if !ok {
+		return errors.New("fail to get DB from context")
+	}
+
+	err := models.DeleteProject(pgdb, project.ID)
+	return err
 }
 
 func getRandomTask(w http.ResponseWriter, r *http.Request) error {

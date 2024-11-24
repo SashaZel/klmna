@@ -29,6 +29,7 @@ func StartAPI(db *sql.DB) *chi.Mux {
 			r.Use(projectCtx)
 			r.Get("/", errorWrapper(getProject))
 			r.Put("/update", errorWrapper(updateProject))
+			r.Delete("/delete", errorWrapper(deleteProject))
 			r.Get("/random_task", errorWrapper(getRandomTask))
 
 			r.Route("/pool", func(r chi.Router) {
