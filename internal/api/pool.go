@@ -16,13 +16,13 @@ type CreatePoolRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Input       string `json:"input"`
-	ProjectId   string `json:"project_id"`
 }
 
 type PoolResponse struct {
-	Ok    bool         `json:"ok"`
-	Error string       `json:"error"`
-	Data  *models.Pool `json:"data"`
+	Ok       bool         `json:"ok"`
+	Error    string       `json:"error"`
+	Pool     *models.Pool `json:"pool"`
+	Template string       `json:"template"`
 }
 
 func poolCtx(next http.Handler) http.Handler {
@@ -54,8 +54,10 @@ func createPool(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	if req.Name == "" || req.ProjectId == "" {
-		return errors.New("Bad request")
+	ctx := r.Context()
+	project, ok := ctx.Value("project").(*models.Project)
+	if !ok {
+		return errors.New("fail to get project from context")
 	}
 
 	pgdb, ok := r.Context().Value("DB").(*sql.DB)
@@ -63,31 +65,26 @@ func createPool(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("fail to connect DB")
 	}
 
-	pool, err := models.CreatePool(pgdb, &models.NewPool{
-		Name:        req.Name,
-		Description: req.Description,
-		ProjectId:   req.ProjectId,
-	})
-	if err != nil {
-		return err
-	}
-
 	tasks := []string{}
-	//   "input": "[\"{'foo':'bar'}\",\"bro1\"]",
 	err = json.Unmarshal([]byte(req.Input), &tasks)
 	if err != nil {
 		return err
 	}
 
-	err = models.CreateTask(pgdb, tasks, pool.ID, pool.ProjectId)
+	pool, err := models.CreatePool(pgdb, &models.NewPool{
+		Name:        req.Name,
+		Description: req.Description,
+		ProjectId:   project.ID.String(),
+	}, tasks)
 	if err != nil {
 		return err
 	}
 
 	res := &PoolResponse{
-		Ok:    true,
-		Error: "",
-		Data:  pool,
+		Ok:       true,
+		Error:    "",
+		Pool:     pool,
+		Template: project.Template,
 	}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
@@ -99,6 +96,10 @@ func createPool(w http.ResponseWriter, r *http.Request) error {
 func getPool(w http.ResponseWriter, r *http.Request) error {
 
 	ctx := r.Context()
+	project, ok := ctx.Value("project").(*models.Project)
+	if !ok {
+		return errors.New("fail to get project from context")
+	}
 	pool, ok := ctx.Value("pool").(*models.Pool)
 	if !ok {
 		return errors.New("fail to get pool from context")
@@ -114,9 +115,10 @@ func getPool(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	res := &PoolResponse{
-		Ok:    true,
-		Error: "",
-		Data:  poolWithTasks,
+		Ok:       true,
+		Error:    "",
+		Pool:     poolWithTasks,
+		Template: project.Template,
 	}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
