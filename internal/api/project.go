@@ -38,6 +38,7 @@ func getProjects(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+
 	w.WriteHeader(http.StatusOK)
 	return nil
 }
