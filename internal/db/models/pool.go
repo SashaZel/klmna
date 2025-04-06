@@ -3,6 +3,8 @@ package models
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	uuid "github.com/google/uuid"
@@ -24,21 +26,61 @@ type Pool struct {
 	// TODO: add progress statistic by tasks
 }
 
-func CreatePool(db *sql.DB, req *NewPool) (*Pool, error) {
+func CreatePool(db *sql.DB, req *NewPool, tasks []string) (*Pool, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
 	id := uuid.New()
+	createdAt := time.Now()
 	insertSqlStatement := "INSERT INTO pools (id, name, description, created_at, project_id) VALUES ($1, $2, $3, $4, $5)"
-	_, err := db.ExecContext(ctx, insertSqlStatement, id, req.Name, req.Description, time.Now(), req.ProjectId)
+	_, err = tx.ExecContext(ctx, insertSqlStatement, id, req.Name, req.Description, createdAt, req.ProjectId)
 	if err != nil {
 		return nil, err
 	}
 
-	pool := &Pool{}
-	selectSqlStatement := "SELECT id, name, description, created_at, project_id FROM pools WHERE id = $1"
-	err = db.QueryRowContext(ctx, selectSqlStatement, id).Scan(&pool.ID, &pool.Name, &pool.Description, &pool.CreatedAt, &pool.ProjectId)
+	pool := &Pool{
+		ID:          id,
+		Name:        req.Name,
+		Description: req.Description,
+		CreatedAt:   createdAt,
+		ProjectId:   req.ProjectId,
+	}
+
+	valueStrings := make([]string, 0, len(tasks))
+	valueArgs := make([]interface{}, 0, len(tasks)*4)
+	i := 0
+	for _, task := range tasks {
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d)", i*4+1, i*4+2, i*4+3, i*4+4))
+		valueArgs = append(valueArgs, time.Now())
+		valueArgs = append(valueArgs, task)
+		valueArgs = append(valueArgs, pool.ProjectId)
+		valueArgs = append(valueArgs, pool.ID)
+		i++
+	}
+	sqlQuery := fmt.Sprintf("INSERT INTO tasks (created_at, input, project_id, pool_id) VALUES %s", strings.Join(valueStrings, ","))
+
+	var params []interface{}
+
+	for i := 0; i < len(valueArgs); i++ {
+		var param sql.NamedArg
+		param.Name = fmt.Sprintf("p%v", i+1)
+		param.Value = valueArgs[i]
+		params = append(params, param)
+	}
+
+	_, err = tx.Exec(sqlQuery, params...)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}

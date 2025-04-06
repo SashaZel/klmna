@@ -22,7 +22,6 @@ type TaskSolutionRequest struct {
 }
 
 func saveTaskSolution(w http.ResponseWriter, r *http.Request) error {
-
 	req := &TaskSolutionRequest{}
 	err := json.NewDecoder(r.Body).Decode(req)
 	if err != nil {

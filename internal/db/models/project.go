@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	uuid "github.com/google/uuid"
@@ -93,7 +94,7 @@ func GetProjectWithPools(db *sql.DB, projectId string) (*Project, error) {
 		pools.id, pools.name, pools.description, pools.created_at,
 		projects.id, projects.name, projects.created_at, projects.template 
 		FROM projects 
-		LEFT JOIN pools ON pools.project_id = projects.id AND pools.project_id = $1
+		LEFT JOIN pools ON pools.project_id = projects.id WHERE pools.project_id = $1
 		ORDER BY pools.created_at
     `
 	rows, err := db.QueryContext(ctx, selectSqlStatement, projectId)
@@ -123,4 +124,57 @@ func GetProjectWithPools(db *sql.DB, projectId string) (*Project, error) {
 	project.Pools = pools
 
 	return project, nil
+}
+
+func UpdateProject(db *sql.DB, projectID uuid.UUID, updateReq *NewProject) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	updateSqlStatement := `
+		UPDATE projects 
+		SET name = $1, template = $2 
+		WHERE id = $3
+	`
+	result, err := db.ExecContext(ctx, updateSqlStatement, &updateReq.Name, &updateReq.Template, projectID)
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected != 1 {
+		return errors.New("no such row")
+	}
+	return err
+}
+
+func DeleteProject(db *sql.DB, projectID uuid.UUID) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	deleteTasksSql := "DELETE FROM tasks WHERE project_id = $1"
+	_, err = tx.QueryContext(ctx, deleteTasksSql, projectID)
+	if err != nil {
+		return err
+	}
+
+	deletePoolsSql := "DELETE FROM pools WHERE project_id = $1"
+	_, err = tx.QueryContext(ctx, deletePoolsSql, projectID)
+	if err != nil {
+		return err
+	}
+
+	var deletedProjectID string
+	deleteProjectSql := "DELETE FROM projects WHERE id = $1 RETURNING id"
+	err = tx.QueryRowContext(ctx, deleteProjectSql, projectID).Scan(&deletedProjectID)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	return err
 }
