@@ -94,7 +94,7 @@ func GetProjectWithPools(db *sql.DB, projectId string) (*Project, error) {
 		pools.id, pools.name, pools.description, pools.created_at,
 		projects.id, projects.name, projects.created_at, projects.template 
 		FROM projects 
-		LEFT JOIN pools ON pools.project_id = projects.id AND pools.project_id = $1
+		LEFT JOIN pools ON pools.project_id = projects.id WHERE pools.project_id = $1
 		ORDER BY pools.created_at
     `
 	rows, err := db.QueryContext(ctx, selectSqlStatement, projectId)
